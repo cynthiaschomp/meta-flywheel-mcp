@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from .urls import normalize_https_url
 
 SCHEMA_PATH = Path(__file__).resolve().parent / "schema.sql"
-VALID_PREFIXES = frozenset({"cmp", "job", "evt"})
+VALID_PREFIXES = frozenset({"cmp", "job", "evt", "apr"})
 ALLOWED_TRANSITIONS = {
     "PENDING": {"STAGED", "FAILED"},
     "STAGED": {"CONTAINER_CREATED", "PUBLISHED", "FAILED"},
@@ -37,32 +37,53 @@ def make_id(prefix: str) -> str:
 
 
 class FlywheelStore:
-    """SQLite persistence spine for campaigns, channel deliveries, and webhook idempotency."""
+    """SQLite persistence spine for campaigns, approvals, channel deliveries, and webhook idempotency."""
 
     def __init__(self, db_path: str | Path = ":memory:") -> None:
         self.db_path = str(db_path)
+        if self.db_path != ":memory:":
+            Path(self.db_path).expanduser().resolve().parent.mkdir(parents=True, exist_ok=True)
         self._conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
         self._conn.execute("PRAGMA foreign_keys = ON;")
         self._conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
+        cols = {r["name"] for r in self._conn.execute("PRAGMA table_info(campaigns)").fetchall()}
+        if "human_approved" not in cols:
+            self._conn.execute("ALTER TABLE campaigns ADD COLUMN human_approved INTEGER NOT NULL DEFAULT 0")
         self._conn.commit()
 
     def close(self) -> None:
         self._conn.close()
 
     def create_campaign(
-        self, *, title: str, brief: str, keyword: str, repo_url: str, booking_url: str, strict_public_passed: bool = False
+        self,
+        *,
+        title: str,
+        brief: str,
+        keyword: str,
+        repo_url: str,
+        booking_url: str,
+        strict_public_passed: bool = False,
+        human_approved: bool = False,
     ) -> Dict[str, Any]:
         if not title.strip() or not brief.strip() or not keyword.strip():
             raise ValueError("Campaign title, brief, and keyword must all be non-empty.")
         cid = make_id("cmp")
         norm_repo, norm_book = normalize_https_url(repo_url), normalize_https_url(booking_url)
         self._conn.execute(
-            "INSERT INTO campaigns VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (cid, title.strip(), brief.strip(), keyword.strip().upper(), norm_repo, norm_book, int(bool(strict_public_passed)), utc_now_iso()),
+            """INSERT INTO campaigns
+               (campaign_id, title, brief, keyword, repo_url, booking_url, strict_public_passed, human_approved, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (cid, title.strip(), brief.strip(), keyword.strip().upper(), norm_repo, norm_book, int(bool(strict_public_passed)), int(bool(human_approved)), utc_now_iso()),
         )
         self._conn.commit()
         return self.get_campaign(cid)
+
+    def mark_campaign_approved(self, campaign_id: str) -> Dict[str, Any]:
+        self.get_campaign(campaign_id)
+        self._conn.execute("UPDATE campaigns SET human_approved = 1 WHERE campaign_id = ?", (campaign_id,))
+        self._conn.commit()
+        return self.get_campaign(campaign_id)
 
     def get_campaign(self, campaign_id: str) -> Dict[str, Any]:
         row = self._conn.execute("SELECT * FROM campaigns WHERE campaign_id = ?", (campaign_id,)).fetchone()
@@ -71,7 +92,7 @@ class FlywheelStore:
         return dict(row)
 
     def latest_campaign_id(self) -> Optional[str]:
-        row = self._conn.execute("SELECT campaign_id FROM campaigns ORDER BY rowid DESC LIMIT 1").fetchone()
+        row = self._conn.execute("SELECT campaign_id FROM campaigns ORDER BY human_approved DESC, rowid DESC LIMIT 1").fetchone()
         return str(row["campaign_id"]) if row else None
 
     def create_publish_job(self, campaign_id: str, channel_payloads: Dict[str, Dict[str, Any]]) -> str:
@@ -98,16 +119,9 @@ class FlywheelStore:
         self._conn.commit()
 
     def transition_channel(
-        self,
-        job_id: str,
-        channel: str,
-        new_state: str,
-        *,
-        container_id: Optional[str] = None,
-        published_id: Optional[str] = None,
-        reply_published_id: Optional[str] = None,
-        error: Optional[str] = None,
-        increment_attempt: bool = False,
+        self, job_id: str, channel: str, new_state: str, *, container_id: Optional[str] = None,
+        published_id: Optional[str] = None, reply_published_id: Optional[str] = None,
+        error: Optional[str] = None, increment_attempt: bool = False,
     ) -> Dict[str, Any]:
         row = self._conn.execute("SELECT * FROM channel_deliveries WHERE job_id = ? AND channel = ?", (job_id, channel)).fetchone()
         if not row:
@@ -151,7 +165,6 @@ class FlywheelStore:
             return False, "duplicate_constraint"
 
     def release_inbound_claim(self, event_id: str) -> None:
-        """Roll back an inbound_comments claim when outbound reply delivery fails."""
         self._conn.execute("DELETE FROM inbound_comments WHERE event_id = ?", (event_id,))
         self._conn.commit()
 

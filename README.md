@@ -1,6 +1,6 @@
 # meta-flywheel-mcp — Deterministic Facebook, Instagram & Threads Lead-Magnet Engine + MCP Server
 
-> **`meta-flywheel-mcp`** is a zero-dependency Python engine and Model Context Protocol (MCP) server for publishing technical stories across Facebook Pages, Instagram Professional, and Threads while fulfilling keyword comments via Meta's official Private Replies API. It enforces `<500` UTF-8 byte Threads auto-chaining, SQLite partial-retry idempotency, `<1ms` HMAC-SHA256 webhook verification, and single-bubble DM delivery with `0 MB VRAM` overhead.
+> **`meta-flywheel-mcp`** is a zero-dependency Python engine and Model Context Protocol (MCP) server for staging technical stories across Facebook Pages, Instagram Professional, and Threads with mandatory human-in-the-loop SHA-256 publishing approval and idempotent Meta Private Reply DM delivery. Agents stage drafts via MCP while only interactive human TTY or UI sign-off can release live posts (`0 MB VRAM` overhead).
 
 <p align="center">
   <img src="docs/assets/readme-header.svg" width="100%" alt="meta-flywheel-mcp — Deterministic Facebook, Instagram & Threads Lead-Magnet Engine + MCP Server">
@@ -96,7 +96,7 @@ print(payload["threads"]["post_1_bytes"], payload["threads"]["post_2"])
 ## Architecture
 
 ```text
-Master Brief + Public URLs -> [Copy Adapter & 200-OK Gate] -> [SQLite Job Spine] -> FB / IG / Threads #1+#2 -> [HMAC Webhook + Self-Author Breaker] -> Atomic Private Reply DM
+Master Brief + Public URLs -> [MCP Draft Stager + SHA-256 Lock] -> [Human TTY/UI Final Approval Gate] -> [SQLite Job Spine] -> FB / IG / Threads #1+#2 -> [HMAC Webhook + Self-Author Breaker] -> Atomic Private Reply DM
 ```
 
 ## Benchmarks
@@ -115,7 +115,7 @@ Add the 5-line `mcpServers` block in Quick Start pointing to `python3 -m meta_fl
 
 ### How do I prevent duplicate Facebook or Instagram posts when Threads times out?
 
-Call `flywheel_retry_failed` (or `retry_failed_channels(store, job_id=...)`). Every channel transitions independently in SQLite, and any surface already in `PUBLISHED` is strictly skipped.
+Run `meta-flywheel-mcp --db flywheel.db --retry <job_id>` (or `retry_failed_channels(store, job_id=...)` in Python; `flywheel_retry_failed` previews retries in MCP dry-run mode). Every channel transitions independently in SQLite, and any surface already in `PUBLISHED` is strictly skipped.
 
 ### How do I avoid Meta's 24-hour messaging lockout when sending both a GitHub link and booking link?
 

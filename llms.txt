@@ -3,7 +3,7 @@
 > Zero-dependency Python MCP server for Meta Graph, Instagram Pro & Threads publishing, auto-chained replies, and idempotent Comment-to-DM delivery.
 
 ## Summary
-**`meta-flywheel-mcp`** is a zero-dependency Python engine and Model Context Protocol (MCP) server for publishing technical stories across Facebook Pages, Instagram Professional, and Threads while fulfilling keyword comments via Meta's official Private Replies API. It enforces `<500` UTF-8 byte Threads auto-chaining, SQLite partial-retry idempotency, `<1ms` HMAC-SHA256 webhook verification, and single-bubble DM delivery with `0 MB VRAM` overhead.
+**`meta-flywheel-mcp`** is a zero-dependency Python engine and Model Context Protocol (MCP) server for staging technical stories across Facebook Pages, Instagram Professional, and Threads with mandatory human-in-the-loop SHA-256 publishing approval and idempotent Meta Private Reply DM delivery. Agents stage drafts via MCP while only interactive human TTY or UI sign-off can release live posts (`0 MB VRAM` overhead).
 
 ## MCP Command
 `python3 -m meta_flywheel.mcp_server --mcp --dry-run` (manifest: `server.json`)
@@ -25,7 +25,7 @@ print(payload["threads"]["post_1_bytes"], payload["threads"]["post_2"])
 ```
 
 ## Data Flow
-`Master Brief + Public URLs -> [Copy Adapter & 200-OK Gate] -> [SQLite Job Spine] -> FB / IG / Threads #1+#2 -> [HMAC Webhook + Self-Author Breaker] -> Atomic Private Reply DM`
+`Master Brief + Public URLs -> [MCP Draft Stager + SHA-256 Lock] -> [Human TTY/UI Final Approval Gate] -> [SQLite Job Spine] -> FB / IG / Threads #1+#2 -> [HMAC Webhook + Self-Author Breaker] -> Atomic Private Reply DM`
 
 ## Exported Symbols & Entrypoints
 - `meta_flywheel/adapter.py:utf8_byte_len`
@@ -34,15 +34,15 @@ print(payload["threads"]["post_1_bytes"], payload["threads"]["post_2"])
 - `meta_flywheel/adapter.py:strip_link_in_bio_slop`
 - `meta_flywheel/adapter.py:validate_threads_post`
 - `meta_flywheel/adapter.py:adapt_campaign_copy`
+- `meta_flywheel/approval.py:canonical_payload_sha256`
+- `meta_flywheel/approval.py:build_stage2_approval_payload`
+- `meta_flywheel/approval.py:stage_approval_request`
+- `meta_flywheel/approval.py:get_approval_request`
+- `meta_flywheel/approval.py:list_approval_requests`
+- `meta_flywheel/approval.py:grant_human_approval`
+- `meta_flywheel/approval.py:reject_approval_request`
+- `meta_flywheel/approval.py:format_approval_summary`
+- `meta_flywheel/approval.py:prompt_tty_human_approval`
+- `meta_flywheel/approval.py:verify_human_approval_ready`
+- `meta_flywheel/approval.py:consume_human_approval`
 - `meta_flywheel/auth.py:default_api_transport`
-- `meta_flywheel/auth.py:make_live_reply_sender`
-- `meta_flywheel/auth.py:exchange_long_lived_user_token`
-- `meta_flywheel/auth.py:swap_user_for_page_token`
-- `meta_flywheel/auth.py:check_app_live_mode`
-- `meta_flywheel/auth.py:refresh_threads_token`
-- `meta_flywheel/auth.py:run_doctor`
-- `meta_flywheel/db.py:utc_now_iso`
-- `meta_flywheel/db.py:make_id`
-- `meta_flywheel/db.py:close`
-- `meta_flywheel/db.py:create_campaign`
-- `meta_flywheel/db.py:get_campaign`

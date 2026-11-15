@@ -110,7 +110,12 @@ def process_comment_webhook(
     if not actor_clean or actor_clean in own_ids:
         return {"status": "ignored", "reason": "self_author_circuit_breaker"}
 
-    campaign = store.get_campaign(campaign_id)
+    try:
+        campaign = store.get_campaign(campaign_id)
+    except KeyError:
+        return {"status": "rejected", "reason": "unknown_campaign"}
+    if not dry_run and not bool(campaign.get("human_approved")):
+        return {"status": "blocked", "reason": "campaign_pending_human_approval"}
     kw = campaign["keyword"]
     if not match_keyword(comment_text, kw):
         return {"status": "ignored", "reason": "keyword_mismatch"}

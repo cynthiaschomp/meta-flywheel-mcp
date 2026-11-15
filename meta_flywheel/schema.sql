@@ -9,7 +9,23 @@ CREATE TABLE IF NOT EXISTS campaigns (
     repo_url TEXT NOT NULL,
     booking_url TEXT NOT NULL,
     strict_public_passed INTEGER NOT NULL DEFAULT 0,
+    human_approved INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS approval_requests (
+    approval_id TEXT PRIMARY KEY,
+    stage TEXT NOT NULL CHECK (stage IN ('stage1_repo', 'stage2_social')),
+    subject_id TEXT NOT NULL,
+    payload_json TEXT NOT NULL,
+    payload_sha256 TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED', 'CONSUMED')),
+    approval_token_hash TEXT,
+    approved_by TEXT,
+    approved_via TEXT CHECK (approved_via IS NULL OR approved_via IN ('interactive_tty', 'dashboard_ui')),
+    created_at TEXT NOT NULL,
+    decided_at TEXT,
+    consumed_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS channel_deliveries (
