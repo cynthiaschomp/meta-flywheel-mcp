@@ -1,0 +1,20 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
+  "name": "io.github.cynthiaschomp/meta-flywheel-mcp",
+  "description": "Zero-dependency Python MCP server for Meta Graph, Instagram Pro & Threads publishing, auto-chained replies, and idempotent Comment-to-DM delivery.",
+  "version": "0.1.0",
+  "repository": {
+    "url": "https://github.com/cynthiaschomp/meta-flywheel-mcp",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "meta-flywheel-mcp",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

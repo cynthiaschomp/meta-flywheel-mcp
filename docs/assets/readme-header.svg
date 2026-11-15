@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 260" width="100%" role="img" aria-label="meta-flywheel-mcp">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#121110"/><stop offset="55%" stop-color="#1b1918"/><stop offset="100%" stop-color="#26211e"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#c89b7b"/><stop offset="100%" stop-color="#e5c7ad"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="260" rx="16" fill="url(#bg)" stroke="#38322e" stroke-width="2"/>
+  <rect x="64" y="58" width="76" height="4" rx="2" fill="url(#accent)"/>
+  <text x="64" y="132" fill="#f4efe9" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif" font-size="54" font-weight="700">meta-flywheel-mcp</text>
+  <text x="64" y="182" fill="#b9afa6" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif" font-size="24">Deterministic Facebook, Instagram &amp; Threads Lead-Magnet Engine + MCP Server</text>
+</svg>

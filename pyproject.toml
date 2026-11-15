@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "meta-flywheel-mcp"
+version = "0.1.0"
+description = "Deterministic Meta Graph, Instagram Professional & Threads Lead-Magnet Flywheel Engine and MCP Server."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [
+  { name = "Cynthia Schomp", url = "https://cynthiaschomp.com" }
+]
+keywords = [
+  "mcp-server",
+  "model-context-protocol",
+  "meta-graph-api",
+  "instagram-api",
+  "threads-api",
+  "social-automation",
+  "lead-generation",
+  "sqlite",
+  "webhook",
+  "python3"
+]
+dependencies = []
+
+[project.scripts]
+meta-flywheel-mcp = "meta_flywheel.mcp_server:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["meta_flywheel*"]
+
+[tool.setuptools.package-data]
+meta_flywheel = ["schema.sql"]
